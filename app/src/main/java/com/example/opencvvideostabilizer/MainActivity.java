@@ -77,20 +77,6 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
         mOpenCvCameraView.setCvCameraViewListener(this);
     }
 
-    public Mat stabilizeImage(Mat newFrame, Mat oldFrame, MatOfPoint2f featuresOld) {
-        Mat greyNew = new Mat();
-        Mat greyOld = new Mat();
-        Imgproc.cvtColor(newFrame, greyNew, COLOR_RGB2GRAY);
-        Imgproc.cvtColor(oldFrame, greyOld, COLOR_RGB2GRAY);
-        MatOfPoint2f currentFeatures = new MatOfPoint2f();
-        MatOfFloat err = new MatOfFloat();
-        MatOfByte status = new MatOfByte();
-        Video.calcOpticalFlowPyrLK(greyOld, greyNew, featuresOld, currentFeatures, status, err);
-        Mat correctionMatrix = Calib3d.estimateAffine2D(currentFeatures, featuresOld);
-        Mat corrected = new Mat();
-        Imgproc.warpAffine(newFrame, corrected, correctionMatrix, newFrame.size());
-        return greyNew;
-    }
 
     @Override
     public void onPause() {
@@ -135,7 +121,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
                 @Override
                 public void run() {
                     goodFeaturesToTrack(inputFrame.gray(), featuresOld, 100, 0.01, 0.1);
-                    corrected[0] = stabilizeImage(oldFrame, mRgba, new MatOfPoint2f(featuresOld.toArray()));
+//                     corrected[0] = stabilizeImage(oldFrame, mRgba, new MatOfPoint2f(featuresOld.toArray()));
                 }
             });
             oldFrame = mRgba.clone();
@@ -145,6 +131,21 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
             isNextFrame = true;
             return oldFrame;
         }
+    }
+
+    public Mat stabilizeImage(Mat newFrame, Mat oldFrame, MatOfPoint2f featuresOld) {
+        Mat greyNew = new Mat(newFrame.size(), CvType.CV_8UC3);
+        Mat greyOld = new Mat(oldFrame.size(), CvType.CV_8UC3);
+        Imgproc.cvtColor(newFrame, greyNew, COLOR_RGB2GRAY);
+        Imgproc.cvtColor(oldFrame, greyOld, COLOR_RGB2GRAY);
+        MatOfPoint2f currentFeatures = new MatOfPoint2f();
+        MatOfFloat err = new MatOfFloat();
+        MatOfByte status = new MatOfByte();
+        Video.calcOpticalFlowPyrLK(greyOld, greyNew, featuresOld, currentFeatures, status, err);
+        Mat correctionMatrix = Calib3d.estimateAffine2D(currentFeatures, featuresOld);
+        Mat corrected = new Mat();
+        Imgproc.warpAffine(newFrame, corrected, correctionMatrix, newFrame.size());
+        return greyNew;
     }
 
     @Override
