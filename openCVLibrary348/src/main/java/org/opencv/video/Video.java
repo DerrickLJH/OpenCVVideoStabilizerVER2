@@ -8,6 +8,7 @@ import java.util.List;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Rect;
 import org.opencv.core.RotatedRect;
@@ -570,64 +571,61 @@ public class Video {
     /**
      * Calculates an optical flow for a sparse feature set using the iterative Lucas-Kanade method with
      * pyramids.
-     *
      * @param prevImg first 8-bit input image or pyramid constructed by buildOpticalFlowPyramid.
      * @param nextImg second input image or pyramid of the same size and the same type as prevImg.
      * @param prevPts vector of 2D points for which the flow needs to be found; point coordinates must be
-     * single-precision floating-point numbers.
+* single-precision floating-point numbers.
      * @param nextPts output vector of 2D points (with single-precision floating-point coordinates)
-     * containing the calculated new positions of input features in the second image; when
-     * OPTFLOW_USE_INITIAL_FLOW flag is passed, the vector must have the same size as in the input.
+* containing the calculated new positions of input features in the second image; when
+* OPTFLOW_USE_INITIAL_FLOW flag is passed, the vector must have the same size as in the input.
      * @param status output status vector (of unsigned chars); each element of the vector is set to 1 if
-     * the flow for the corresponding features has been found, otherwise, it is set to 0.
+* the flow for the corresponding features has been found, otherwise, it is set to 0.
      * @param err output vector of errors; each element of the vector is set to an error for the
-     * corresponding feature, type of the error measure can be set in flags parameter; if the flow wasn't
-     * found then the error is not defined (use the status parameter to find such cases).
+* corresponding feature, type of the error measure can be set in flags parameter; if the flow wasn't
+* found then the error is not defined (use the status parameter to find such cases).
      * @param winSize size of the search window at each pyramid level.
      * @param maxLevel 0-based maximal pyramid level number; if set to 0, pyramids are not used (single
-     * level), if set to 1, two levels are used, and so on; if pyramids are passed to input then
-     * algorithm will use as many levels as pyramids have but no more than maxLevel.
+* level), if set to 1, two levels are used, and so on; if pyramids are passed to input then
+* algorithm will use as many levels as pyramids have but no more than maxLevel.
      * @param criteria parameter, specifying the termination criteria of the iterative search algorithm
-     * (after the specified maximum number of iterations criteria.maxCount or when the search window
-     * moves by less than criteria.epsilon.
+* (after the specified maximum number of iterations criteria.maxCount or when the search window
+* moves by less than criteria.epsilon.
      * @param flags operation flags:
-     * <ul>
-     *   <li>
-     *     <b>OPTFLOW_USE_INITIAL_FLOW</b> uses initial estimations, stored in nextPts; if the flag is
-     *      not set, then prevPts is copied to nextPts and is considered the initial estimate.
-     *   </li>
-     *   <li>
-     *     <b>OPTFLOW_LK_GET_MIN_EIGENVALS</b> use minimum eigen values as an error measure (see
-     *      minEigThreshold description); if the flag is not set, then L1 distance between patches
-     *      around the original and a moved point, divided by number of pixels in a window, is used as a
-     *      error measure.
+* <ul>
+*   <li>
+*     <b>OPTFLOW_USE_INITIAL_FLOW</b> uses initial estimations, stored in nextPts; if the flag is
+*      not set, then prevPts is copied to nextPts and is considered the initial estimate.
+*   </li>
+*   <li>
+*     <b>OPTFLOW_LK_GET_MIN_EIGENVALS</b> use minimum eigen values as an error measure (see
+*      minEigThreshold description); if the flag is not set, then L1 distance between patches
+*      around the original and a moved point, divided by number of pixels in a window, is used as a
+*      error measure.
      * @param minEigThreshold the algorithm calculates the minimum eigen value of a 2x2 normal matrix of
-     * optical flow equations (this matrix is called a spatial gradient matrix in CITE: Bouguet00), divided
-     * by number of pixels in a window; if this value is less than minEigThreshold, then a corresponding
-     * feature is filtered out and its flow is not processed, so it allows to remove bad points and get a
-     * performance boost.
-     *   </li>
-     * </ul>
-     *
-     * The function implements a sparse iterative version of the Lucas-Kanade optical flow in pyramids. See
-     * CITE: Bouguet00 . The function is parallelized with the TBB library.
-     *
-     * <b>Note:</b>
-     *
-     * <ul>
-     *   <li>
-     *    An example using the Lucas-Kanade optical flow algorithm can be found at
-     *     opencv_source_code/samples/cpp/lkdemo.cpp
-     *   </li>
-     *   <li>
-     *    (Python) An example using the Lucas-Kanade optical flow algorithm can be found at
-     *     opencv_source_code/samples/python/lk_track.py
-     *   </li>
-     *   <li>
-     *    (Python) An example using the Lucas-Kanade tracker for homography matching can be found at
-     *     opencv_source_code/samples/python/lk_homography.py
-     *   </li>
-     * </ul>
+* optical flow equations (this matrix is called a spatial gradient matrix in CITE: Bouguet00), divided
+* by number of pixels in a window; if this value is less than minEigThreshold, then a corresponding
+* feature is filtered out and its flow is not processed, so it allows to remove bad points and get a
+* performance boost.
+*   </li>
+* </ul>
+*
+* The function implements a sparse iterative version of the Lucas-Kanade optical flow in pyramids. See
+* CITE: Bouguet00 . The function is parallelized with the TBB library.
+*
+* <b>Note:</b>
+*
+* <ul>
+*   <li>
+*    An example using the Lucas-Kanade optical flow algorithm can be found at
+*     opencv_source_code/samples/cpp/lkdemo.cpp
+*   </li>
+*   <li>
+*    (Python) An example using the Lucas-Kanade optical flow algorithm can be found at
+*     opencv_source_code/samples/python/lk_track.py
+*   </li>
+*   <li>
+*    (Python) An example using the Lucas-Kanade tracker for homography matching can be found at
+*     opencv_source_code/samples/python/lk_homography.py
      */
     public static void calcOpticalFlowPyrLK(Mat prevImg, Mat nextImg, MatOfPoint2f prevPts, MatOfPoint2f nextPts, MatOfByte status, MatOfFloat err, Size winSize, int maxLevel, TermCriteria criteria, int flags, double minEigThreshold) {
         Mat prevPts_mat = prevPts;

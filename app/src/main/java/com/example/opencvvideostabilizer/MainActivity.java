@@ -6,6 +6,7 @@ import org.opencv.android.JavaCameraView;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.calib3d.Calib3d;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.android.CameraBridgeViewBase;
@@ -14,6 +15,12 @@ import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.MatOfPoint3;
+import org.opencv.core.MatOfPoint3f;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.core.TermCriteria;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.Video;
 
@@ -23,10 +30,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.ScaleGestureDetector;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.opencv.imgproc.Imgproc.COLOR_BGR2GRAY;
 import static org.opencv.imgproc.Imgproc.COLOR_RGB2GRAY;
@@ -35,10 +46,11 @@ import static org.opencv.imgproc.Imgproc.goodFeaturesToTrack;
 
 public class MainActivity extends Activity implements CvCameraViewListener2 {
     private static final String TAG = "MainActivity";
-    private Mat mRgba, oldFrame;
+    private Mat mGray, mRgba, mPrevGray;
     private CameraBridgeViewBase mOpenCvCameraView;
     private Button btnCapture;
-    private MatOfPoint featuresOld;
+    private MatOfPoint features, prevFeatures;
+    private Point[] nextFeatures;
     private boolean isNextFrame = false;
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -105,16 +117,20 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
 
     public void onCameraViewStarted(int width, int height) {
         mRgba = new Mat(height, width, CvType.CV_8UC4);
+        mGray = new Mat(height, width, CvType.CV_8UC1);
     }
 
     public void onCameraViewStopped() {
         mRgba.release();
+        mGray.release();
     }
 
 
     public Mat onCameraFrame(final CvCameraViewFrame inputFrame) {
         mRgba = inputFrame.rgba();
-        final Mat[] corrected = {new Mat()};
+        mGray = inputFrame.gray();
+
+         /* final Mat[] corrected = {new Mat()};
         if (isNextFrame) {
             featuresOld = new MatOfPoint();
             AsyncTask.execute(new Runnable() {
@@ -130,7 +146,71 @@ public class MainActivity extends Activity implements CvCameraViewListener2 {
             oldFrame = mRgba.clone();
             isNextFrame = true;
             return oldFrame;
+        }*/
+        // Improve quality and corner detection
+
+        Size winSize = new Size(15,15);
+        MatOfFloat err = new MatOfFloat();
+        MatOfByte status = new MatOfByte();
+        TermCriteria term = new TermCriteria(TermCriteria.EPS | TermCriteria.MAX_ITER, 20,0.03);
+
+        Imgproc.medianBlur(mGray,mGray,5);
+        features = new MatOfPoint();
+        prevFeatures = new MatOfPoint();
+        // erode
+        Mat dilate = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3,3));
+        Imgproc.dilate(mGray,mGray,dilate);
+
+        // Detecting corners
+        Imgproc.goodFeaturesToTrack(mGray, features, 100, 0.05, 10, new Mat(), 5, false, 0.09);
+        prevFeatures.fromList(features.toList());
+        for (int i =0; i < prevFeatures.toArray().length ; i++){
+            Imgproc.circle(mRgba, prevFeatures.toArray()[i], 10, new Scalar(0, 255, 0),5);
         }
+//        Imgproc.cornerSubPix(mGray, prevFeatures, winSize, new Size(1,1), term);
+
+//        // Optical Flow
+      /*  mPrevGray = new Mat();
+        MatOfPoint2f nextFeatures = new MatOfPoint2f(prevFeatures.toArray());
+        Video.calcOpticalFlowPyrLK(mPrevGray, mGray, new MatOfPoint2f(prevFeatures.toArray()), nextFeatures, status, err, winSize, 3, term, 0, 0.01);
+        Imgproc.putText(mRgba,Integer.toString(features.toArray().length),new Point(20,50), Core.FONT_HERSHEY_SIMPLEX, 2, new Scalar(255,0,0));
+        Imgproc.putText(mRgba,Integer.toString(nextFeatures.toArray().length),new Point(20,100), Core.FONT_HERSHEY_SIMPLEX, 2, new Scalar(255,0,0));
+
+
+        //           DRAWING MOTION VECTORS
+        List<Point> good_new = new ArrayList<>();
+        List<Point> good_old = new ArrayList<>();
+
+        for(int i = 0; i < prevFeatures.toArray().length;i++){
+            if(status.toList().get(i) == 1){
+                good_old.add(prevFeatures.toArray()[i]);
+            }
+        }
+        for(int i = 0; i < nextFeatures.toArray().length;i++){
+            if(status.toList().get(i) == 1){
+                good_new.add(nextFeatures.toArray()[i]);
+            }
+        }
+
+        for(int i = 0; i < good_new.size() || i < good_old.size();i++){
+            Point a = new Point(); Point b = new Point();
+            if(i < good_new.size()){
+                a.x = good_new.get(i).x;
+                a.y = good_new.get(i).y;
+            }
+            if(i < good_old.size()){
+                b.x = good_old.get(i).x;
+                b.y = good_old.get(i).y;
+            }
+            Imgproc.line(mRgba,a,b, new Scalar(0,0,255), 2);
+            Imgproc.circle(mRgba,b, 5 , new Scalar(0,0,255), -1);
+
+        }
+
+        nextFeatures.fromArray(prevFeatures.toArray());
+        mPrevGray = mGray.clone();*/
+
+        return mRgba;
     }
 
     public Mat stabilizeImage(Mat newFrame, Mat oldFrame, MatOfPoint2f featuresOld) {
